@@ -2,10 +2,15 @@ import tkinter
 from tkinter import *
 from tkinter.filedialog import *
 from tkinter import ttk
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 
 
 def initUi():
     root = tkinter.Tk()
+    root.geometry("460x160+10+10")
+    root.resizable(False, False)
+    ttk.Style("sandstone")
     root.title("打补丁")
     frame1 = Frame(root, padx=16, pady=6)
     frame2 = Frame(root, padx=16, pady=6)
@@ -15,7 +20,9 @@ def initUi():
     desdir = Entry(frame1, fg="#999999", width=30)
     label.pack(side=LEFT)
     desdir.pack(side=LEFT)
-    buttondir = ttk.Button(frame1, text="选择", command=lambda: selectDir(desdir))
+    buttondir = ttk.Button(
+        frame1, text="选择", command=lambda: selectDir(desdir), bootstyle="success"
+    )
     buttondir.pack(side=LEFT, padx=8, pady=8)
 
     # update build file src
