@@ -6,17 +6,20 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import bsdiff4
 import os
+import shutil
+import json
 
 
 def initUi():
     root = tkinter.Tk()
     root.title("补丁生成")
-    root.geometry("640x220+10+10")
+    root.geometry("640x240+10+10")
     root.resizable(False, False)
     ttk.Style("sandstone")
     frame1 = Frame(root, padx=16, pady=12)
     frame2 = Frame(root, padx=16, pady=12)
-    frame3 = Frame(root, padx=16, pady=12)
+    frame3 = Frame(root, padx=16, pady=6)
+    frame4 = Frame(root, padx=16, pady=12)
 
     # origin build file src
     label = Label(frame1, text="原始打包目录", width=15, justify=LEFT)
@@ -40,12 +43,16 @@ def initUi():
     )
     buttondir.pack(side=LEFT, padx=32, pady=8)
 
+    # patch label
+    patchLabel = Label(frame3, text="", justify=LEFT)
+    patchLabel.pack(side=TOP)
+
     # patch create btn
     buttonstart = ttk.Button(
-        frame3,
+        frame4,
         text="生成",
         width=32,
-        command=lambda: checkFiles(desdir, des2dir),
+        command=lambda: checkFiles(desdir, des2dir, patchLabel),
         bootstyle="success",
     )
     buttonstart.pack(side=BOTTOM)
@@ -53,25 +60,49 @@ def initUi():
     frame1.pack(fill=X)
     frame2.pack(fill=X)
     frame3.pack(fill=X)
+    frame4.pack(fill=X)
 
     root.mainloop()
 
 
 # 检查文件
-def checkFiles(origin, des):
+def checkFiles(origin, des, patchLabel):
     orginPath = origin.get()
     desPath = des.get()
     if desPath != None and orginPath != None:
         orginDic = checkParent(orginPath)
         desDic = checkParent(desPath)
-        patchPath = "./dist"
-        if not os.path.exists(patchPath):
-            os.mkdir(patchPath)
-        for key in orginDic:
-            if key in desDic:
-                bsdiff4.file_diff(
-                    orginDic[key], desDic[key], patchPath + "/" + key + ".patch"
-                )
+        patchPathDir = "./dist"
+        if not os.path.exists(patchPathDir):
+            os.mkdir(patchPathDir)
+        outputJson = []
+        for key in desDic:
+            des = {}
+            if key in orginDic:
+                patchPath = patchPathDir + "/" + key + ".patch"
+                patchLabel.config(text="create..." + patchPath)
+                bsdiff4.file_diff(orginDic[key], desDic[key], patchPath)
+                des["key"] = key
+                des["type"] = "patch"
+                des["parentDir"] = findParentDir(desDic[key])
+                des["patchName"] = key + ".patch"
+            else:
+                shutil.copyfile(desDic[key], patchPathDir + "/" + key)
+                des["key"] = key
+                des["parentDir"] = findParentDir(desDic[key])
+                des["type"] = "add"
+            outputJson.append(des)
+        with open(patchPathDir + "/patch.json", "w") as fd:
+            fd.write(json.dumps(outputJson))
+
+
+def findParentDir(path):
+    if "Managed" in path:
+        return "Managed"
+    elif "Resources" in path:
+        return "Resources"
+    else:
+        return ""
 
 
 def checkParent(parentPath):
